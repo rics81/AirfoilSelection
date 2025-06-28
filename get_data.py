@@ -65,7 +65,7 @@ main_data=[]
 for index, airfoil in df.iterrows():
     ax_dict={'name':airfoil['Name'].split(' - ')[0],
              'url':airfoil['Link_Detail']}
-    for reynolds in ['1000000', '1000000-n5']:
+    for reynolds in ['200000', '500000', '1000000']:
         url = airfoil['Link_Polar'] + '-' + reynolds
         response = requests.get(url)
         if response.status_code == 200:

@@ -12,7 +12,7 @@ cnt=0
 failed_airfoils=pd.DataFrame(columns=['name', 'desc'])
 for airfoil in main_data:
     print(airfoil['name'])
-    for reynolds in ['1000000-n5', '1000000']:
+    for reynolds in ['200000', '500000', '1000000']:
         
         if airfoil.get(reynolds) is None:
             failed_airfoils = pd.concat([failed_airfoils, pd.DataFrame({'name':airfoil['name'], 'desc':['There is no Reynolds']})])
@@ -50,14 +50,14 @@ for airfoil in main_data:
         #airfoil[reynolds]['clArea']=np.trapz(y_valid, x_valid)
         
         ## ---Determine the standard deviation of Cl increment ---##
-        airfoil[reynolds]['clStdRate']=np.diff(y[:max_idx]).std()
+        airfoil[reynolds]['clStdRate']=np.diff(y_valid[:max_idx]).std()
         ## ---Determine the mean of Cl increment --- ##
         # airfoil[reynolds]['clMeanRate']=np.diff(y[:max_idx]).mean()
         
         ##---Determine the std value for decrease of Cl in stall area
         airfoil[reynolds]['clStdStallRate']=np.diff(y[max_idx:]).std()
         ## ---Determine the mean of Cl decrease in stall area --- ##
-        airfoil[reynolds]['clMeanStallRate']=np.diff(y[max_idx:]).mean()
+        airfoil[reynolds]['clMeanStallRate']=abs(np.diff(y[max_idx:]).mean())
         
         ## ---
         ## --- Cl/Cd ANALYSIS DATA --- ##
@@ -72,10 +72,10 @@ for airfoil in main_data:
         ## ---
         # Filter y values that have alpha greater than 0
         y = airfoil[reynolds]['cd']
-        valid_indices = np.where((x[:max_idx] > 0))[0]
-        x_valid = x[valid_indices]
+        # valid_indices = np.where((x[:max_idx] >= 0))[0]
+        # x_valid = x[valid_indices]
         y_valid = y[valid_indices]
-        airfoil[reynolds]['cdArea']=np.trapz(y_valid, x_valid)
+        # airfoil[reynolds]['cdArea']=np.trapz(y_valid, x_valid)
         airfoil[reynolds]['cdMax']=np.max(y_valid)
         
         ## ---Determine the std value for increase of Cd
@@ -92,7 +92,7 @@ for airfoil in main_data:
         ## ---Determine the mean of Cd increase --- ##
         # airfoil[reynolds]['cmMean']=np.diff(y[valid_indices]).mean()
         ## -- Determine value for cm when alpha is equal to zero
-        airfoil[reynolds]['cmAlphaZero'] = y[x >= 0].head(1).item()
+        airfoil[reynolds]['cmAlphaZero'] = abs(y[x >= 0].head(1).item())
         
         #break
     
@@ -101,55 +101,3 @@ for airfoil in main_data:
 
     # if airfoil['name'] == 'goe281-il':
     #     break
-
-dfAHP_G_data = pd.DataFrame(columns = ['name',
-                                       'n5_clMax',
-                                       'n5_clStdRate',
-                                       'n5_clStdStallRate',
-                                       'n5_clMeanStallRate',
-                                       'n5_cdArea',
-                                       'n5_cdMax',
-                                       'n5_cmAlphaZero',
-                                       'n5_max cl/cd',
-                                       'n9_clMax',
-                                       'n9_clStdRate',
-                                       'n9_clStdStallRate',
-                                       'n9_clMeanStallRate',
-                                       'n9_cdArea',
-                                       'n9_cdMax',
-                                       'n9_cmAlphaZero',
-                                       'n9_max cl/cd'])
-
-df = {}
-for airfoil in main_data:
-    print(airfoil['name'])
-   
-    if airfoil['name'] not in failed_airfoils['name'].values:
-        df.update({'name': airfoil['name']})
-        
-        for reynolds in ['1000000-n5', '1000000']:
-            # if airfoil.get(reynolds) is None:
-            #     failed_airfoils.append(airfoil['name'])
-            #     print('There is no reynolds')
-                
-            # else:            
-            axColName = 'n5_' if reynolds == '1000000-n5' else 'n9_'
-            
-            df.update({axColName + 'clMax': airfoil[reynolds]['clMax'],
-                       axColName + 'clStdRate': airfoil[reynolds]['clStdRate'],
-                       axColName + 'clStdStallRate': airfoil[reynolds]['clStdStallRate'],
-                       axColName + 'clMeanStallRate': airfoil[reynolds]['clMeanStallRate'],
-                       axColName + 'cdArea': airfoil[reynolds]['cdArea'],
-                       axColName + 'cdMax': airfoil[reynolds]['cdMax'],
-                       axColName + 'cmAlphaZero': airfoil[reynolds]['cmAlphaZero'],
-                       axColName + 'max cl/cd': airfoil[reynolds]['max cl/cd']})
-    
-        dfAHP_G_data = pd.concat([dfAHP_G_data, pd.DataFrame(df, index=[0])])
-    
-dfAHP_G_data['n5_max cl/cd'] = pd.to_numeric(dfAHP_G_data['n5_max cl/cd'])
-dfAHP_G_data['n9_max cl/cd'] = pd.to_numeric(dfAHP_G_data['n9_max cl/cd'])
-
-failed_airfoils.extend(list(dfAHP_G_data[dfAHP_G_data.isnull().any(axis=1)]['name']))
-failed_airfoils = set(failed_airfoils)
-
-airfoils_result = ahp(dfAHP_G_data[~dfAHP_G_data['name'].isin(failed_airfoils)])
