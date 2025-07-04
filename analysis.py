@@ -10,34 +10,82 @@ from scipy.integrate import simps
 
 def check_airfoil_data(airfoil: dict) -> pd.DataFrame():
     failed_airfoil = pd.DataFrame(columns=['name', 'desc'])
-    for reynolds in ['200000', '500000', '1000000']:        
-        if airfoil.get(reynolds) is None:
-            failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['There is no Reynolds']})
-            print(airfoil['name'] + f'- There is no {reynolds} Reynolds')
-            break    
-        
-        al = airfoil[reynolds]['alpha']
-        cl = airfoil[reynolds]['cl']
-        cd = airfoil[reynolds]['cd']
-        cm = airfoil[reynolds]['cm']
-        
-        al_ok = al.apply(pd.to_numeric, errors='coerce').notna().all()
-        cl_ok = cl.apply(pd.to_numeric, errors='coerce').notna().all()
-        cd_ok = cd.apply(pd.to_numeric, errors='coerce').notna().all()
-        cm_ok = cm.apply(pd.to_numeric, errors='coerce').notna().all()
-        
-        if not al_ok or not cl_ok or not cd_ok or not cm_ok:
-            failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['alpha, cl, cd or cm series is corrupted']})
-            print(airfoil['name'] + '- alpha, cl, cd or cm series is corrupted')
-            break
-        
-        if len(cl) - np.argmax(cl)  < 10:
-            failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['no stall area']})
-            print(airfoil['name'] + '- no stall area')
-            break
+    
+    if len(airfoil['re']) < 3:        
+        failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['One or more Reynolds data is missing']})
+        print(airfoil['name'] + " - One or more Reynolds data is missing")
+    
+    else: 
+        for reynolds in airfoil['re']:
+            al = reynolds['alpha']
+            cl = reynolds['cl']
+            cd = reynolds['cd']
+            cm = reynolds['cm']
+            
+            al_ok = al.apply(pd.to_numeric, errors='coerce').notna().all()
+            cl_ok = cl.apply(pd.to_numeric, errors='coerce').notna().all()
+            cd_ok = cd.apply(pd.to_numeric, errors='coerce').notna().all()
+            cm_ok = cm.apply(pd.to_numeric, errors='coerce').notna().all()
+            
+            if not al_ok or not cl_ok or not cd_ok or not cm_ok:
+                failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['alpha, cl, cd or cm series is corrupted']})
+                print(airfoil['name'] + '- alpha, cl, cd or cm series is corrupted')
+                break
+            
+            if len(cl) - np.argmax(cl) < 10:
+                failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['no stall area']})
+                print(airfoil['name'] + '- no stall area')
+                break
             
     return failed_airfoil
 
+def add_data(re_data: dict):
+    # Sample data (replace with your actual series)
+    al = re_data['alpha']
+    cl = re_data['cl']
+    cd = re_data['cd']
+    cm = re_data['cm']
+    
+    ## CL
+    # --- Determine the max Cl--- ##
+    re_data['clMax']=np.max(cl)
+    
+    # Find the index of the maximum value
+    max_idx = np.argmax(cl)  # Index of max(y)
+    
+    # Filter y values that are positive and increasing until the maximum Cl value
+    valid_indices = np.where((cl[:max_idx] > 0))[0]
+    
+    cl_valid = cl[valid_indices]
+    
+    # ---Determine the standard deviation of Cl increment ---##
+    re_data['clStdRate']=np.diff(cl_valid).std()
+    # ---Determine the mean of Cl increment --- ##
+    re_data['clMeanRate']=np.diff(cl_valid).mean()
+    
+    # ---Determine the std value for decrease of Cl in stall area
+    re_data['clStdStallRate']=np.diff(cl[max_idx:]).std()
+    ## ---Determine the mean of Cl decrease in stall area --- ##
+    re_data['clMeanStallRate']=abs(np.diff(cl[max_idx:]).mean())    
+    
+    ## CD
+    valid_indices = np.where((al[:max_idx] >= 0))[0]
+    
+    cd_valid = cd[valid_indices]
+    
+    # airfoil[reynolds]['cdArea']=np.trapz(y_valid, x_valid)
+    re_data['cdMax']=np.max(cd_valid)
+    
+    ## ---Determine the std value for increase of Cd
+    re_data['cdStdRate']=np.diff(cd_valid).std()
+    ## ---Determine the mean of Cd increase --- ##
+    re_data['cdMeanRate']=np.diff(cd_valid).mean()
+    
+    ## CM    
+    ## -- Determine value for cm when alpha is equal to zero
+    re_data['cmAlphaZero'] = abs(cm[al >= 0].head(1).item())
+
+# detecta "problemas" nos dados dos aerofolios
 cnt = 0
 samples = len(main_data)
 failed_airfoils = pd.DataFrame(columns=['name', 'desc'])
@@ -46,80 +94,22 @@ for airfoil in main_data:
     cnt += 1
     print (str(cnt) + '/' + str(samples))
 
-cnt = 0
-for airfoil in main_data:
+# remove aerofolios com "problema" 
+aux_data = []
+for i, airfoil in enumerate(main_data):
     if airfoil['name'] not in list(failed_airfoils['name']):
-        print(airfoil['name'])
-        for reynolds in ['200000', '500000', '1000000']:
-            
-            # Sample data (replace with your actual series)
-            x = airfoil[reynolds]['alpha']
-            y = airfoil[reynolds]['cl']
-            
-            ## ---
-            ## --- Cl ANALYSIS DATA --- ##
-            ## ---
-            ## --- Determine the max Cl--- ##
-            airfoil[reynolds]['clMax']=np.max(y)
-            
-            # Find the index of the maximum value
-            max_idx = np.argmax(y)  # Index of max(y)
-            
-            # Filter y values that are positive and increasing until the maximum Cl value
-            valid_indices = np.where((y[:max_idx] > 0))[0]
-            
-            x_valid = x[valid_indices]
-            y_valid = y[valid_indices]
-            
-            # Compute the area using the trapezoidal rule
-            #airfoil[reynolds]['clArea']=np.trapz(y_valid, x_valid)
-            
-            ## ---Determine the standard deviation of Cl increment ---##
-            airfoil[reynolds]['clStdRate']=np.diff(y_valid[:max_idx]).std()
-            ## ---Determine the mean of Cl increment --- ##
-            airfoil[reynolds]['clMeanRate']=np.diff(y[:max_idx]).mean()
-            
-            ##---Determine the std value for decrease of Cl in stall area
-            airfoil[reynolds]['clStdStallRate']=np.diff(y[max_idx:]).std()
-            ## ---Determine the mean of Cl decrease in stall area --- ##
-            airfoil[reynolds]['clMeanStallRate']=abs(np.diff(y[max_idx:]).mean())
-            
-            ## ---
-            ## --- Cl/Cd ANALYSIS DATA --- ##
-            ## ---
-            # Filter y values that have alpha greater than 0
-            # y = airfoil[reynolds]['cl']/airfoil[reynolds]['cd']
-            # y_valid = y[valid_indices]
-            # airfoil[reynolds]['cl/cdRatioArea']=np.trapz(y_valid, x_valid)
-            
-            ## ---        
-            ## --- Cd ANALYSIS DATA --- ##
-            ## ---
-            # Filter y values that have alpha greater than 0
-            y = airfoil[reynolds]['cd']
-            # valid_indices = np.where((x[:max_idx] >= 0))[0]
-            # x_valid = x[valid_indices]
-            y_valid = y[valid_indices]
-            # airfoil[reynolds]['cdArea']=np.trapz(y_valid, x_valid)
-            airfoil[reynolds]['cdMax']=np.max(y_valid)
-            
-            ## ---Determine the std value for increase of Cd
-            airfoil[reynolds]['cdStdRate']=np.diff(y[valid_indices]).std()
-            ## ---Determine the mean of Cd increase --- ##
-            airfoil[reynolds]['cdMeanRate']=np.diff(y[valid_indices]).mean()
-            
-            ## ---        
-            ## --- Cm ANALYSIS DATA --- ##
-            ## ---
-            y = airfoil[reynolds]['cm']
-            ## ---Determine the std value for increase of Cd
-            # airfoil[reynolds]['cmStd']=np.diff(y[valid_indices]).std()
-            ## ---Determine the mean of Cd increase --- ##
-            # airfoil[reynolds]['cmMean']=np.diff(y[valid_indices]).mean()
-            ## -- Determine value for cm when alpha is equal to zero
-            airfoil[reynolds]['cmAlphaZero'] = abs(y[x >= 0].head(1).item())
-            
-            #break
+        aux_data.append(airfoil)
+main_data = aux_data.copy()
+del aux_data
+
+# gera indicadores dos aerofolios
+cnt = 0
+samples = len(main_data)
+for airfoil in main_data:
+    print(airfoil['name'])
+    
+    for re in airfoil['re']:
+        add_data(re)        
         
     cnt+=1
     print('total: '+str(cnt)+'/'+str(samples))

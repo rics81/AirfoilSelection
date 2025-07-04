@@ -55,16 +55,20 @@ for link in links:
         data.append({'Name': name, 'Link_Detail': href})
 
 # Convert to DataFrame
-df = pd.DataFrame(data)
+dfURLs = pd.DataFrame(data)
 
-df['Link_Polar'] = df['Link_Detail'].str.replace("/airfoil/details?airfoil=", "http://airfoiltools.com/polar/csv?polar=xf-")
-df['Link_Detail'] = 'http://airfoiltools.com' + df['Link_Detail']
+dfURLs['Link_Polar'] = dfURLs['Link_Detail'].str.replace("/airfoil/details?airfoil=", "http://airfoiltools.com/polar/csv?polar=xf-")
+dfURLs['Link_Detail'] = 'http://airfoiltools.com' + dfURLs['Link_Detail']
 
-cnt=0
-main_data=[]
-for index, airfoil in df.iterrows():
-    ax_dict={'name':airfoil['Name'].split(' - ')[0],
-             'url':airfoil['Link_Detail']}
+cnt = 0
+samples = len(dfURLs)
+main_data = []
+for index, airfoil in dfURLs.iterrows():
+    
+    ax_dict={'name': airfoil['Name'].split(' - ')[0],
+             'url': airfoil['Link_Detail'],
+             're': []}
+    
     for reynolds in ['200000', '500000', '1000000']:
         url = airfoil['Link_Polar'] + '-' + reynolds
         response = requests.get(url)
@@ -79,8 +83,8 @@ for index, airfoil in df.iterrows():
             ax_dict['desc'] = airfoil['Name'].split(' - ')[1]
             ax_dict['n_crit'] = df_header.loc['Ncrit'].item()
             
-            
-            ax_dict[reynolds]={
+            ax_dict['re'].append({
+                're': reynolds,
                 'max cl/cd': df_header.loc['Max Cl/Cd'].item(),
                 'max cl/cd alpha': df_header.loc['Max Cl/Cd alpha'].item(),
                 'alpha': df_data['Alpha'],
@@ -90,7 +94,7 @@ for index, airfoil in df.iterrows():
                 'cm': df_data['Cm'],
                 'top_xtr': df_data['Top_Xtr'],
                 'bot_xtr': df_data['Bot_Xtr']
-            }
+            })
             
             print(response.content)
             print("CSV file downloaded successfully!")
@@ -122,4 +126,4 @@ for index, airfoil in df.iterrows():
     main_data.append(ax_dict)
     
     cnt+=1
-    print(url+'\n'+'total: '+str(cnt)+'/'+str(len(df)))
+    print(url+'\n'+'total: '+str(cnt)+'/'+str(samples))
