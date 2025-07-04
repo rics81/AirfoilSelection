@@ -75,12 +75,16 @@ def format_coord_data(url: str) -> dict:
     else:
         data['coord'] = pd.DataFrame([coord.strip().split() for coord in lines[1:]], columns=['x', 'y'])
     
+    # ajusta indíce
+    data['coord'] = data['coord'].reset_index(drop=True)    
+    
     # remove dados não numericos
     data['coord'] = data['coord'][pd.to_numeric(data['coord']['x'], errors='coerce').notna()]
     data['coord']['x'] = pd.to_numeric(data['coord']['x'], errors='coerce')
     data['coord']['y'] = pd.to_numeric(data['coord']['y'], errors='coerce')
-    # ajusta indíce
-    data['coord'] = data['coord'].reset_index(drop=True)
+    
+    data['coord']['x'][data['coord']['x']==data['coord']['x'].min()]=0.0
+    data['coord']['x'][data['coord']['x']==data['coord']['x'].max()]=1.0
     
     # ajusta ultimo registro se x não termina na origem
     if data['coord']['x'][0] != data['coord']['x'].iloc[-1]:
@@ -89,6 +93,8 @@ def format_coord_data(url: str) -> dict:
                                                  'y':data['coord']['y'][0]},
                                                 index=[len(data['coord'])])
                                    ])
+    
+    data['coord']=pd.concat([data['coord'].head(1),data['coord'][1:-1].drop_duplicates(),data['coord'].tail(1)])
     return data
 
 # --MAIN
@@ -118,3 +124,4 @@ for url in uiuc_dat_links:
     #if cnt>=10: break
     
 # https://m-selig.ae.illinois.edu/ads/coord/fx74130wp2mod.dat
+
