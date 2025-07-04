@@ -4,7 +4,7 @@ Created on Wed Jun 18 17:37:52 2025
 
 @author: Ricardo
 """
-from pyxfoil import Xfoil, set_workdir, set_xfoilexe
+from pyxfoilmain.pyxfoil import Xfoil, set_workdir, set_xfoilexe
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -57,9 +57,9 @@ def get_polar_data(airfoil: dict,
         xfoil.points_from_dat(temp_file.name)
         xfoil.name = 'test'
 
-    xfoil.set_ppar(180)
+    xfoil.set_ppar(240)
     
-    polar_data = xfoil.run_polar(alpha_st, alpha_end, alpha_step, mach=mach, re=re)
+    polar_data = xfoil.run_polar(alpha_st, alpha_end, alpha_step, mach=mach, Re=re)
     return polar_data
     
 # Import Dependencies
@@ -77,7 +77,7 @@ for airfoil in airfoil_coords:
     print ('airfoil: ' + airfoil['name'])
     print (str(cnt) + '/' + str(total))
     
-    polars = get_polar_data(airfoil, xfoil_folder + 'files', -5.0, 20.0, 0.25, 0.1, 500000)
+    polars = get_polar_data(airfoil, xfoil_folder + 'files', -5.0, 20.0, 0.25, 0.1, 1000000.0)
 
     if len(polars.alpha)>=80:
         polar_data = {'name': airfoil['name']}
