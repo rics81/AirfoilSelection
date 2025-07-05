@@ -32,7 +32,7 @@ def check_airfoil_data(airfoil: dict) -> pd.DataFrame():
                 print(airfoil['name'] + '- alpha, cl, cd or cm series is corrupted')
                 break
             
-            if len(cl) - np.argmax(cl) < 10:
+            if len(cl) - np.argmax(cl) < 7:
                 failed_airfoil = pd.DataFrame({'name':airfoil['name'], 'desc':['no stall area']})
                 print(airfoil['name'] + '- no stall area')
                 break
@@ -99,13 +99,13 @@ aux_data = []
 for i, airfoil in enumerate(main_data):
     if airfoil['name'] not in list(failed_airfoils['name']):
         aux_data.append(airfoil)
-main_data = aux_data.copy()
+main_data_filt = aux_data.copy()
 del aux_data
 
 # gera indicadores dos aerofolios
 cnt = 0
-samples = len(main_data)
-for airfoil in main_data:
+samples = len(main_data_filt)
+for airfoil in main_data_filt:
     print(airfoil['name'])
     
     for re in airfoil['re']:

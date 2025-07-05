@@ -85,8 +85,8 @@ for index, airfoil in dfURLs.iterrows():
             
             ax_dict['re'].append({
                 're': reynolds,
-                'max cl/cd': df_header.loc['Max Cl/Cd'].item(),
-                'max cl/cd alpha': df_header.loc['Max Cl/Cd alpha'].item(),
+                'max cl/cd': float(df_header.loc['Max Cl/Cd'].item()),
+                'max cl/cd alpha': float(df_header.loc['Max Cl/Cd alpha'].item()),
                 'alpha': df_data['Alpha'],
                 'cl': df_data['Cl'],
                 'cd': df_data['Cd'],
