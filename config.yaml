@@ -1,0 +1,87 @@
+# =============================================================================
+# AirfoilSelection Pipeline Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Scraper Settings
+# -----------------------------------------------------------------------------
+scraper:
+  base_url: "http://airfoiltools.com/search/airfoils"
+  polar_base_url: "http://airfoiltools.com/polar/csv?polar=xf-"
+  reynolds_numbers:
+    - "200000"
+    - "500000"
+    - "1000000"
+  request_timeout: 10
+  max_retries: 5         # retries per request on timeout/connection error (backoff: 2^n seconds)
+  headers:
+    User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    Accept-Language: "pt-BR,pt;q=0.9"
+    DNT: "1"
+
+# -----------------------------------------------------------------------------
+# Data Storage
+# -----------------------------------------------------------------------------
+data:
+  raw_polars_path: "data/raw_polars.parquet"
+  features_path: "data/features.parquet"
+  results_dir: "data/results"
+
+# -----------------------------------------------------------------------------
+# Pre-filter: Geometry Constraints
+# Set to null to disable a limit (e.g., camber_min: null)
+# -----------------------------------------------------------------------------
+filter:
+  thickness_min: 0.0    # % chord  — minimum max-thickness
+  thickness_max: 100.0   # % chord  — maximum max-thickness
+  camber_min: 0.0       # % chord  — minimum max-camber  (0 = symmetric ok)
+  camber_max: 100.0       # % chord  — maximum max-camber
+
+# -----------------------------------------------------------------------------
+# Ranking Methods
+# top_n controls how many candidates each method contributes to PrOPPAGA
+# -----------------------------------------------------------------------------
+ranking:
+  top_n_per_method: 5   # top-N from PCA, AHP and AHP-PCA fed into PrOPPAGA
+
+# -----------------------------------------------------------------------------
+# PrOPPAGA Weights
+# One weight per feature column (33 total: 11 indicators × 3 Reynolds numbers)
+# Order matches: r2*, r5*, r10* — same column order as dfAirfoilFeat
+# weights are normalised internally so only relative values matter
+# -----------------------------------------------------------------------------
+proppaga:
+  weights:
+    - 33   # r2  max cl/cd
+    - 6    # r2  max cl/cd alpha
+    - 30   # r2  clMax
+    - 15   # r2  clStdRate
+    - 18   # r2  clMeanRate
+    - 21   # r2  clStdStallRate
+    - 24   # r2  clMeanStallRate
+    - 27   # r2  cdMax
+    - 9    # r2  cdStdRate
+    - 12   # r2  cdMeanRate
+    - 3    # r2  cmAlphaZero
+    - 33   # r5  max cl/cd
+    - 6    # r5  max cl/cd alpha
+    - 30   # r5  clMax
+    - 15   # r5  clStdRate
+    - 18   # r5  clMeanRate
+    - 21   # r5  clStdStallRate
+    - 24   # r5  clMeanStallRate
+    - 27   # r5  cdMax
+    - 9    # r5  cdStdRate
+    - 12   # r5  cdMeanRate
+    - 3    # r5  cmAlphaZero
+    - 33   # r10 max cl/cd
+    - 6    # r10 max cl/cd alpha
+    - 30   # r10 clMax
+    - 15   # r10 clStdRate
+    - 18   # r10 clMeanRate
+    - 21   # r10 clStdStallRate
+    - 24   # r10 clMeanStallRate
+    - 27   # r10 cdMax
+    - 9    # r10 cdStdRate
+    - 12   # r10 cdMeanRate
+    - 3    # r10 cmAlphaZero
